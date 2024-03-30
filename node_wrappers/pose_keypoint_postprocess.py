@@ -86,7 +86,7 @@ class SaveOefPoseKpsAsJsonFile:
             "keypoints": []
         }
 
-        for person in data[0]['people']:
+        for person in pose_kps[0]['people']:
             keypoints_list = []
             pose_keypoints_2d = person['pose_keypoints_2d']
             for i in range(0, len(pose_keypoints_2d), 3):
