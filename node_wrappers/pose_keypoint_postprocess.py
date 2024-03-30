@@ -62,6 +62,51 @@ class SavePoseKpsAsJsonFile:
             json.dump(pose_kps , f)
         return {}
 
+class SaveOefPoseKpsAsJsonFile:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "pose_kps": ("POSE_KEYPOINT",),
+                "filename_prefix": ("STRING", {"default": "PoseKeypoint"})
+            }
+        }
+    RETURN_TYPES = ()
+    FUNCTION = "save_oef_pose_kps"
+    OUTPUT_NODE = True
+    CATEGORY = "ControlNet Preprocessors/Pose Keypoint Postprocess"
+    def __init__(self):
+        self.output_dir = folder_paths.get_output_directory()
+        self.type = "output"
+        self.prefix_append = ""
+    def save_oef_pose_kps(self, pose_kps, filename_prefix):
+        converted = {
+            "width": pose_kps[0]['canvas_width'],
+            "height": pose_kps[0]['canvas_height'],
+            "keypoints": []
+        }
+
+        for person in data[0]['people']:
+            keypoints_list = []
+            pose_keypoints_2d = person['pose_keypoints_2d']
+            for i in range(0, len(pose_keypoints_2d), 3):
+                x = pose_keypoints_2d[i]
+                y = pose_keypoints_2d[i + 1]
+                abs_x = x * converted['width']
+                abs_y = y * converted['height']
+                keypoints_list.append([abs_x, abs_y])
+            
+            converted['keypoints'].append(keypoints_list)
+        
+        filename_prefix += self.prefix_append
+        full_output_folder, filename, counter, subfolder, filename_prefix = \
+            folder_paths.get_save_image_path(filename_prefix, self.output_dir, converted["width"], converted["height"])
+        file = f"{filename}_{counter:05}.json"
+        with open(os.path.join(full_output_folder, file), 'w') as f:
+            json.dump(converted , f)
+
+        return {}
+
 #COCO-Wholebody doesn't have eyebrows as it inherits 68 keypoints format
 #Perhaps eyebrows can be estimated tho
 FACIAL_PARTS = ["skin", "left_eye", "right_eye", "nose", "upper_lip", "inner_mouth", "lower_lip"]
@@ -128,9 +173,11 @@ class FacialPartColoringFromPoseKps:
 
 NODE_CLASS_MAPPINGS = {
     "SavePoseKpsAsJsonFile": SavePoseKpsAsJsonFile,
+    "SaveOefPoseKpsAsJsonFile": SaveOefPoseKpsAsJsonFile,
     "FacialPartColoringFromPoseKps": FacialPartColoringFromPoseKps
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SavePoseKpsAsJsonFile": "Save Pose Keypoints",
+    "SaveOefPoseKpsAsJsonFile": "Save Openpose Editor Format Pose Keypoints",
     "FacialPartColoringFromPoseKps": "Colorize Facial Parts from PoseKPS"
 }
